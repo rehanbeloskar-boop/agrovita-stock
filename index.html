@@ -3,24 +3,21 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Agrovita Stock Manager (Login + Category Image)</title>
+<title>Agrovita Stock Manager (Purchase Column)</title>
 <style>
   :root{--green:#28a745;--darkgreen:#2e7d32;--light:#f0f8f0;}
   body{font-family:Arial,Helvetica,sans-serif;margin:0;background:var(--light);}
-  /* Login overlay */
   #loginWrap{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:9999;}
   #loginBox{background:#fff;padding:22px;border-radius:8px;width:360px;box-shadow:0 6px 20px rgba(0,0,0,0.2);}
   #loginBox h2{margin:0 0 12px;color:var(--darkgreen);}
-  input[type="text"],input[type="password"]{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px;}
+  input[type="text"],input[type="password"],input[type="number"]{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px;}
   .btn{background:var(--green);color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;}
   .btn:hover{opacity:.95}
   .muted{color:#666;font-size:13px;}
-  /* App layout */
   .app{display:flex;height:100vh;overflow:hidden;}
   .sidebar{width:260px;background:var(--darkgreen);color:#fff;padding:12px;box-sizing:border-box;overflow:auto;}
   .sidebar h2{margin:6px 0 10px;font-size:18px;}
   .sidebar .newCatRow{display:flex;gap:6px;flex-wrap:wrap;}
-  .sidebar input[type="text"]{width:100%;padding:8px;border-radius:6px;border:none;}
   .sidebar input[type="file"]{width:100%;color:#fff;}
   .cat-btn{display:flex;align-items:center;gap:8px;background:#66bb6a;border:none;color:#fff;padding:8px;border-radius:6px;margin:6px 0;cursor:pointer;text-align:left}
   .cat-btn img{width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid rgba(255,255,255,0.2)}
@@ -30,17 +27,13 @@
   header h1{margin:0;font-size:18px;color:var(--darkgreen)}
   .user-controls{display:flex;gap:8px;align-items:center}
   .containerCard{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.04);margin-bottom:14px}
-  label.muted{font-size:13px;color:#666}
   .flexRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{border:1px solid #eee;padding:8px;text-align:center;font-size:14px}
   th{background:var(--green);color:#fff}
   .low-stock{background:#fff3cd;font-weight:700}
-  /* banner */
   .cat-banner{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;background:#f8fff8;margin-bottom:12px}
   .cat-banner img{height:64px;width:64px;object-fit:cover;border-radius:6px;border:1px solid #ddd}
-  /* responsive */
-  @media(max-width:900px){.sidebar{display:none}.app{flex-direction:column}.main{height:100vh;overflow:auto}}
 </style>
 </head>
 <body>
@@ -56,24 +49,9 @@
       <input id="loginPass" type="password" placeholder="password">
       <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
         <button class="btn" onclick="doLogin()">Login</button>
-        <button class="btn" style="background:#6c757d" onclick="showChangeCred()">Change Default Credentials</button>
       </div>
       <p class="muted" style="margin-top:8px">Default: <strong>admin</strong> / <strong>1234</strong></p>
     </div>
-  </div>
-</div>
-
-<!-- Change credentials modal (simple) -->
-<div id="credBox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:99999">
-  <div style="background:#fff;padding:18px;border-radius:8px;width:360px">
-    <h3 style="margin:0 0 8px;color:var(--darkgreen)">Change Login Credentials</h3>
-    <input id="newUser" placeholder="New username" type="text">
-    <input id="newPass" placeholder="New password" type="password">
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <button class="btn" onclick="changeCredentials()">Save</button>
-      <button class="btn" style="background:#6c757d" onclick="closeCred()">Cancel</button>
-    </div>
-    <p class="muted" style="margin-top:8px">Note: Credentials are stored locally in your browser (LocalStorage).</p>
   </div>
 </div>
 
@@ -81,21 +59,12 @@
 <div class="app" id="app" style="display:none">
   <div class="sidebar">
     <h2>Categories</h2>
-
     <div class="newCatRow containerCard">
       <input id="catName" type="text" placeholder="Category name">
       <input id="catImage" type="file" accept="image/*">
       <button class="btn" onclick="addCategory()">Add Category</button>
     </div>
-
     <div id="categoryList" style="margin-top:12px"></div>
-
-    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:12px 0">
-
-    <div style="font-size:13px;color:#e6f4ea">Logged in as: <strong id="currentUser"></strong></div>
-    <div style="margin-top:8px">
-      <button class="btn" onclick="logout()">Logout</button>
-    </div>
   </div>
 
   <div class="main">
@@ -106,148 +75,82 @@
         <button class="btn" onclick="importPrompt()" style="background:#ff9800">Import</button>
       </div>
     </header>
-
     <div id="pages"></div>
   </div>
 </div>
 
 <script>
-/* -------------------------
-  STORAGE KEYS & DEFAULTS
---------------------------*/
-const STORAGE_KEY = 'agrovita_v2';
-const CRED_KEY = 'agrovita_cred_v2';
+const STORAGE_KEY='agrovita_v3';
+if(!localStorage.getItem('cred_v3')) localStorage.setItem('cred_v3',JSON.stringify({user:'admin',pass:'1234'}));
 
-// default credentials if not set
-if(!localStorage.getItem(CRED_KEY)){
-  localStorage.setItem(CRED_KEY, JSON.stringify({ user:'admin', pass:'1234' }));
-}
-
-// load saved app or init empty
-let store = localStorage.getItem(STORAGE_KEY);
-let categories = store ? JSON.parse(store) : {}; // categories object with keys as names
-let activeCategory = null;
-
-/* ------------- LOGIN -------------- */
-document.getElementById('loginUser').value = '';
-document.getElementById('loginPass').value = '';
+let categories=localStorage.getItem(STORAGE_KEY)?JSON.parse(localStorage.getItem(STORAGE_KEY)):{};
+let activeCategory=null;
 
 function doLogin(){
-  const u = document.getElementById('loginUser').value.trim();
-  const p = document.getElementById('loginPass').value;
-  const cred = JSON.parse(localStorage.getItem(CRED_KEY));
-  if(u === cred.user && p === cred.pass){
-    // success
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  const cred=JSON.parse(localStorage.getItem('cred_v3'));
+  if(u===cred.user && p===cred.pass){
     document.getElementById('loginWrap').style.display='none';
     showApp(u);
-  } else {
-    alert('Invalid credentials');
-  }
+  } else alert('Invalid credentials');
 }
 
-function showChangeCred(){ document.getElementById('credBox').style.display='flex'; }
-function closeCred(){ document.getElementById('credBox').style.display='none'; }
-
-function changeCredentials(){
-  const nu = document.getElementById('newUser').value.trim();
-  const np = document.getElementById('newPass').value;
-  if(!nu||!np) return alert('Enter new username and password');
-  localStorage.setItem(CRED_KEY, JSON.stringify({user:nu, pass:np}));
-  alert('Credentials updated locally. Use new login next time.');
-  closeCred();
-}
-
-/* ------------- SHOW APP -------------- */
 function showApp(username){
   document.getElementById('app').style.display='flex';
-  document.getElementById('currentUser').innerText = username;
-  renderSidebar();
-  // create pages for existing categories
-  Object.keys(categories).forEach(name => createCategoryPage(name));
-  // if any categories exist, show first
-  const first = Object.keys(categories)[0];
-  if(first) showCategory(first);
+  Object.keys(categories).forEach(name=>createCategoryPage(name));
+  const first=Object.keys(categories)[0]; if(first) showCategory(first);
 }
 
-/* ------------- SAVE / LOAD -------------- */
-function saveAll(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
-}
+function saveAll(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(categories)); }
 
-/* ------------- CATEGORY (with image) -------------- */
 function addCategory(){
-  const name = document.getElementById('catName').value.trim();
-  const file = document.getElementById('catImage').files[0];
+  const name=document.getElementById('catName').value.trim();
+  const file=document.getElementById('catImage').files[0];
   if(!name) return alert('Enter category name');
   if(categories[name]) return alert('Category exists');
 
   if(file){
-    const reader = new FileReader();
-    reader.onload = function(e){
-      const b64 = e.target.result; // base64 image
-      categories[name] = { img: b64, products: [], history: [], productId:1 };
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const b64=e.target.result;
+      categories[name]={img:b64,products:[],history:[],productId:1};
       saveAll(); document.getElementById('catName').value=''; document.getElementById('catImage').value='';
       renderSidebar(); createCategoryPage(name); showCategory(name);
     }
     reader.readAsDataURL(file);
   } else {
-    categories[name] = { img: null, products: [], history: [], productId:1 };
+    categories[name]={img:null,products:[],history:[],productId:1};
     saveAll(); document.getElementById('catName').value=''; document.getElementById('catImage').value='';
     renderSidebar(); createCategoryPage(name); showCategory(name);
   }
 }
 
 function renderSidebar(){
-  const list = document.getElementById('categoryList');
-  list.innerHTML = '';
+  const list=document.getElementById('categoryList'); list.innerHTML='';
   Object.keys(categories).forEach(name=>{
-    const cat = categories[name];
-    const btn = document.createElement('button');
-    btn.className = 'cat-btn';
-    btn.onclick = ()=> showCategory(name);
-    const imgHtml = cat.img ? `<img src="${cat.img}" alt="img">` : `<div style="width:36px;height:36px;border-radius:4px;background:#fff3cd;display:inline-block"></div>`;
-    btn.innerHTML = `${imgHtml}<span>${name}</span>`;
-    // add a small delete icon to remove category
-    const del = document.createElement('button');
-    del.textContent = '🗑';
-    del.title='Delete category';
-    del.style.marginLeft='8px';
-    del.style.background='transparent';
-    del.style.border='none';
-    del.style.color='white';
-    del.style.cursor='pointer';
-    del.onclick = (ev)=>{ ev.stopPropagation(); deleteCategory(name); };
-    const wrapper = document.createElement('div');
-    wrapper.style.display='flex'; wrapper.style.alignItems='center'; wrapper.style.justifyContent='space-between';
-    wrapper.style.marginBottom='6px';
-    wrapper.appendChild(btn);
-    wrapper.appendChild(del);
-    list.appendChild(wrapper);
+    const cat=categories[name];
+    const btn=document.createElement('button'); btn.className='cat-btn';
+    btn.onclick=()=>showCategory(name);
+    const imgHtml=cat.img?`<img src="${cat.img}" alt="img">`:`<div style="width:36px;height:36px;border-radius:4px;background:#fff3cd;display:inline-block"></div>`;
+    btn.innerHTML=`${imgHtml}<span>${name}</span>`;
+    list.appendChild(btn);
   });
 }
 
-/* ------------- CREATE CATEGORY PAGE (SPA style) -------------- */
 function createCategoryPage(name){
   if(document.getElementById('page-'+name)) return;
-  const pages = document.getElementById('pages');
-  const div = document.createElement('div');
-  div.id = 'page-'+name;
-  div.className = 'containerCard';
-  // banner with image
-  const bannerImg = categories[name].img ? `<img src="${categories[name].img}" alt="cat" style="height:64px;width:64px;border-radius:6px;border:1px solid #ddd">` : `<div style="height:64px;width:64px;background:#fff3cd;border-radius:6px"></div>`;
-  div.innerHTML = `
-    <div class="cat-banner">
-      ${bannerImg}
-      <div>
-        <h2 style="margin:0">${name}</h2>
-        <div style="margin-top:6px" class="muted">Manage products & scan stock for this category</div>
-      </div>
-    </div>
+  const pages=document.getElementById('pages');
+  const div=document.createElement('div'); div.id='page-'+name; div.className='containerCard';
+  const bannerImg=categories[name].img?`<img src="${categories[name].img}">`:`<div style="height:64px;width:64px;background:#fff3cd;border-radius:6px"></div>`;
+  div.innerHTML=`
+    <div class="cat-banner">${bannerImg}<div><h2>${name}</h2><div class="muted">Manage products & scan stock</div></div></div>
 
-    <div style="margin-bottom:10px" class="flexRow">
+    <div class="flexRow" style="margin-bottom:10px">
       <input id="pname-${name}" type="text" placeholder="Product Name">
       <input id="psku-${name}" type="text" placeholder="SKU">
       <input id="pqty-${name}" type="number" placeholder="Quantity" min="0">
+      <input id="ppur-${name}" type="number" placeholder="Purchase Qty" min="0">
       <input id="pth-${name}" type="number" placeholder="Threshold" min="0" style="width:120px">
       <button class="btn" onclick="addProduct('${name}')">Add / Update</button>
     </div>
@@ -258,195 +161,87 @@ function createCategoryPage(name){
     </div>
 
     <h3>Products</h3>
-    <div style="overflow-x:auto"><table id="ptable-${name}"><tr><th>ID</th><th>Name</th><th>SKU</th><th>Qty</th><th>Threshold</th><th>Updated</th><th>Actions</th></tr></table></div>
+    <div style="overflow-x:auto"><table id="ptable-${name}"><tr><th>ID</th><th>Name</th><th>SKU</th><th>Qty</th><th>Threshold</th><th>Purchase</th><th>Updated</th><th>Actions</th></tr></table></div>
 
     <h3 style="margin-top:12px">History</h3>
     <div class="flexRow" style="margin-bottom:8px">
       <button class="btn" onclick="printHistory('${name}')">Print</button>
       <button class="btn" onclick="clearHistory('${name}')">Clear</button>
     </div>
-    <div style="overflow-x:auto"><table id="htable-${name}"><tr><th>Date</th><th>Time</th><th>Product</th><th>SKU</th><th>In</th><th>Out</th><th>Qty After</th></tr></table></div>
+    <div style="overflow-x:auto"><table id="htable-${name}"><tr><th>Date</th><th>Time</th><th>Product</th><th>SKU</th><th>In</th><th>Out</th><th>Purchase</th><th>Qty After</th></tr></table></div>
   `;
   pages.appendChild(div);
 
-  // bind scanner enter
-  setTimeout(()=>{ // slight delay to ensure element exists
-    const scanInput = document.getElementById('scan-'+name);
-    scanInput.addEventListener('keypress', function(e){
-      if(e.key === 'Enter'){ e.preventDefault(); scanSKU(name); }
+  setTimeout(()=>{
+    const scanInput=document.getElementById('scan-'+name);
+    scanInput.addEventListener('keypress',function(e){
+      if(e.key==='Enter'){e.preventDefault(); scanSKU(name);}
     });
-  }, 50);
+  },50);
 }
 
-/* ------------- SHOW CATEGORY -------------- */
 function showCategory(name){
-  // hide others
   Object.keys(categories).forEach(n=>{
-    const el = document.getElementById('page-'+n);
-    if(el) el.style.display = (n===name) ? 'block' : 'none';
+    const el=document.getElementById('page-'+n);
+    if(el) el.style.display=(n===name)?'block':'none';
   });
-  activeCategory = name;
-  // ensure page exists
+  activeCategory=name;
   if(!document.getElementById('page-'+name)) createCategoryPage(name);
   renderProducts(name); renderHistory(name);
 }
 
-/* ------------- DELETE CATEGORY -------------- */
-function deleteCategory(name){
-  if(!confirm('Delete category "'+name+'"? This will remove its products & history.')) return;
-  delete categories[name];
-  saveAll();
-  // remove page element
-  const pg = document.getElementById('page-'+name);
-  if(pg) pg.remove();
-  renderSidebar();
-  // show first category if exists
-  const first = Object.keys(categories)[0];
-  if(first) showCategory(first);
-}
-
-/* ------------- PRODUCTS & HISTORY -------------- */
 function addProduct(cat){
-  const pname = document.getElementById('pname-'+cat).value.trim();
-  const psku = document.getElementById('psku-'+cat).value.trim();
-  const pqty = parseInt(document.getElementById('pqty-'+cat).value);
-  const pth = parseInt(document.getElementById('pth-'+cat).value) || 0;
-  if(!pname || !psku || isNaN(pqty)) return alert('Fill product name, SKU and quantity');
+  const pname=document.getElementById('pname-'+cat).value.trim();
+  const psku=document.getElementById('psku-'+cat).value.trim();
+  const pqty=parseInt(document.getElementById('pqty-'+cat).value);
+  const ppur=parseInt(document.getElementById('ppur-'+cat).value)||0;
+  const pth=parseInt(document.getElementById('pth-'+cat).value)||0;
+  if(!pname||!psku||isNaN(pqty)) return alert('Fill name, SKU, quantity');
 
-  const now = new Date(), date = now.toLocaleDateString(), time = now.toLocaleTimeString();
-  let prod = categories[cat].products.find(p=>p.sku===psku);
+  const now=new Date(), date=now.toLocaleDateString(), time=now.toLocaleTimeString();
+  let prod=categories[cat].products.find(p=>p.sku===psku);
   if(prod){
-    prod.qty += pqty;
-    prod.threshold = pth;
-    prod.lastUpdated = `${date} ${time}`;
+    prod.qty+=pqty;
+    prod.purchase=ppur;
+    prod.threshold=pth;
+    prod.lastUpdated=`${date} ${time}`;
   } else {
-    prod = { id: categories[cat].productId++, name:pname, sku:psku, qty:pqty, threshold:pth, lastUpdated:`${date} ${time}` };
+    prod={id:categories[cat].productId++, name:pname, sku:psku, qty:pqty, purchase:ppur, threshold:pth, lastUpdated:`${date} ${time}`};
     categories[cat].products.push(prod);
   }
-  categories[cat].history.push({ date, time, product: prod.name, sku: prod.sku, stockIn: pqty, stockOut: 0, qtyAfter: prod.qty });
+  categories[cat].history.push({date,time,product:prod.name,sku:prod.sku,stockIn:pqty,stockOut:0,purchase:ppur,qtyAfter:prod.qty});
   saveAll();
-  // clear inputs
-  document.getElementById('pname-'+cat).value=''; document.getElementById('psku-'+cat).value=''; document.getElementById('pqty-'+cat).value='';
+  document.getElementById('pname-'+cat).value=''; document.getElementById('psku-'+cat).value='';
+  document.getElementById('pqty-'+cat).value=''; document.getElementById('ppur-'+cat).value=''; document.getElementById('pth-'+cat).value='';
   renderProducts(cat); renderHistory(cat);
-  if(prod.qty <= prod.threshold) alert(`Stock Alert! "${prod.name}" is low.`);
+  if(prod.qty<=prod.threshold) alert(`Stock Alert! "${prod.name}" is low.`);
 }
 
 function renderProducts(cat){
-  const table = document.getElementById('ptable-'+cat);
-  table.innerHTML = `<tr><th>ID</th><th>Name</th><th>SKU</th><th>Qty</th><th>Threshold</th><th>Updated</th><th>Actions</th></tr>`;
+  const table=document.getElementById('ptable-'+cat);
+  table.innerHTML=`<tr><th>ID</th><th>Name</th><th>SKU</th><th>Qty</th><th>Threshold</th><th>Purchase</th><th>Updated</th><th>Actions</th></tr>`;
   categories[cat].products.forEach(p=>{
-    const low = (p.qty <= p.threshold) ? 'low-stock' : '';
-    table.innerHTML += `<tr class="${low}"><td>${p.id}</td><td>${p.name}</td><td>${p.sku}</td><td>${p.qty}</td><td>${p.threshold}</td><td>${p.lastUpdated}</td><td><button class="btn" onclick="deleteProduct('${cat}',${p.id})">Delete</button></td></tr>`;
+    const low=(p.qty<=p.threshold)?'low-stock':'';
+    table.innerHTML+=`<tr class="${low}"><td>${p.id}</td><td>${p.name}</td><td>${p.sku}</td><td>${p.qty}</td><td>${p.threshold}</td><td>${p.purchase}</td><td>${p.lastUpdated}</td><td><button class="btn" onclick="deleteProduct('${cat}',${p.id})">Delete</button></td></tr>`;
   });
 }
 
 function renderHistory(cat){
-  const table = document.getElementById('htable-'+cat);
-  table.innerHTML = `<tr><th>Date</th><th>Time</th><th>Product</th><th>SKU</th><th>In</th><th>Out</th><th>Qty After</th></tr>`;
+  const table=document.getElementById('htable-'+cat);
+  table.innerHTML=`<tr><th>Date</th><th>Time</th><th>Product</th><th>SKU</th><th>In</th><th>Out</th><th>Purchase</th><th>Qty After</th></tr>`;
   categories[cat].history.forEach(h=>{
-    table.innerHTML += `<tr><td>${h.date}</td><td>${h.time}</td><td>${h.product}</td><td>${h.sku || ''}</td><td>${h.stockIn}</td><td>${h.stockOut}</td><td>${h.qtyAfter}</td></tr>`;
+    table.innerHTML+=`<tr><td>${h.date}</td><td>${h.time}</td><td>${h.product}</td><td>${h.sku || ''}</td><td>${h.stockIn}</td><td>${h.stockOut}</td><td>${h.purchase||0}</td><td>${h.qtyAfter}</td></tr>`;
   });
 }
 
-/* delete single product */
-function deleteProduct(cat, id){
-  if(!confirm('Delete this product?')) return;
-  categories[cat].products = categories[cat].products.filter(p=>p.id !== id);
-  saveAll();
-  renderProducts(cat);
-}
+function deleteProduct(cat,id){if(!confirm('Delete this product?'))return;categories[cat].products=categories[cat].products.filter(p=>p.id!==id);saveAll();renderProducts(cat);}
+function scanSKU(cat){const input=document.getElementById('scan-'+cat);const sku=input.value.trim();if(!sku)return;const prod=categories[cat].products.find(p=>p.sku===sku);if(!prod){input.style.backgroundColor='red';setTimeout(()=>input.style.backgroundColor='',400);return;}prod.qty-=1;if(prod.qty<0)prod.qty=0;const now=new Date(),date=now.toLocaleDateString(),time=now.toLocaleTimeString();categories[cat].history.push({date,time,product:prod.name,sku:prod.sku,stockIn:0,stockOut:1,purchase:prod.purchase,qtyAfter:prod.qty});saveAll();renderProducts(cat);renderHistory(cat);input.style.backgroundColor='#28a745';setTimeout(()=>input.style.backgroundColor='',400);input.value='';if(prod.qty<=prod.threshold)alert(`Stock Alert! "${prod.name}" is low.`);}
 
-/* ------------- SCAN SKU (auto-out) -------------- */
-function scanSKU(cat){
-  const input = document.getElementById('scan-'+cat);
-  const sku = input.value.trim();
-  if(!sku) return;
-  const prod = categories[cat].products.find(p=>p.sku===sku);
-  if(!prod){ input.style.backgroundColor='#ff6b6b'; setTimeout(()=>input.style.backgroundColor='',500); alert('SKU not found'); input.value=''; return; }
-  if(prod.qty <= 0){ input.style.backgroundColor='#ffb74d'; setTimeout(()=>input.style.backgroundColor='',600); alert(`${prod.name} is out of stock!`); input.value=''; return; }
-
-  prod.qty -= 1;
-  const now = new Date(), date=now.toLocaleDateString(), time=now.toLocaleTimeString();
-  prod.lastUpdated = `${date} ${time}`;
-  categories[cat].history.push({ date, time, product: prod.name, sku: prod.sku, stockIn:0, stockOut:1, qtyAfter: prod.qty });
-  saveAll();
-  renderProducts(cat); renderHistory(cat);
-  input.style.backgroundColor = '#b9f6ca'; setTimeout(()=>input.style.backgroundColor='',450);
-  if(prod.qty <= prod.threshold) alert(`Stock Alert! "${prod.name}" is low.`);
-  input.value='';
-}
-
-/* ------------- Print & Clear -------------- */
-function printHistory(cat){
-  const content = document.getElementById('htable-'+cat).outerHTML;
-  const win = window.open('','', 'width=900,height=600');
-  win.document.write('<html><head><title>Stock History</title>');
-  win.document.write('<style>table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:center}th{background:#28a745;color:#fff}</style>');
-  win.document.write('</head><body>');
-  win.document.write('<h2 style="text-align:center">'+cat+' Stock History</h2>');
-  win.document.write(content);
-  win.document.write('</body></html>');
-  win.document.close();
-  win.print();
-}
-
-function clearHistory(cat){
-  if(!confirm('Clear history for '+cat+'? This cannot be undone.')) return;
-  categories[cat].history = [];
-  saveAll();
-  renderHistory(cat);
-}
-
-/* ------------- Export / Import (simple JSON) -------------- */
-function exportAll(){
-  const data = JSON.stringify(categories, null, 2);
-  const blob = new Blob([data], { type:'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `agrovita_backup_${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-}
-
-function importPrompt(){
-  const inp = document.createElement('input');
-  inp.type='file'; inp.accept='application/json';
-  inp.onchange = (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev){
-      try{
-        const obj = JSON.parse(ev.target.result);
-        // basic validation
-        if(typeof obj !== 'object') throw 'invalid';
-        categories = obj;
-        // recreate pages & render
-        saveAll();
-        document.getElementById('pages').innerHTML=''; renderSidebar();
-        Object.keys(categories).forEach(n=> createCategoryPage(n));
-        const first = Object.keys(categories)[0]; if(first) showCategory(first);
-        alert('Import successful');
-      }catch(err){ alert('Invalid JSON file'); }
-    }
-    reader.readAsText(file);
-  }
-  inp.click();
-}
-
-/* ------------- Auth helpers -------------- */
-function logout(){
-  location.reload(); // simple approach: reload shows login again
-}
-
-/* ------------- Initialize UI from storage if user already logged in? -------------- */
-// We don't auto-skip login for security; show login overlay (user must input). But preload category pages for speed.
-Object.keys(categories).forEach(name => {
-  // create page elements so showing after login is faster
-  // but don't show the app until login success
-  createCategoryPage(name);
-});
-
-// end
+function printHistory(cat){const w=window.open('');w.document.write('<pre>'+document.getElementById('htable-'+cat).outerHTML+'</pre>');w.print();}
+function clearHistory(cat){if(confirm('Clear history?')){categories[cat].history=[];saveAll();renderHistory(cat);}}
+function exportAll(){const data=JSON.stringify(categories);const a=document.createElement('a');a.href='data:text/json;charset=utf-8,'+encodeURIComponent(data);a.download='agrovita_export.json';a.click();}
+function importPrompt(){const f=document.createElement('input');f.type='file';f.accept='.json';f.onchange=e=>{const file=e.target.files[0];const r=new FileReader();r.onload=function(ev){categories=JSON.parse(ev.target.result);Object.keys(categories).forEach(n=>createCategoryPage(n));renderSidebar();showCategory(Object.keys(categories)[0]);saveAll();};r.readAsText(file);};f.click();}
 </script>
+
 </body>
 </html>
